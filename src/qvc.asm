@@ -4,16 +4,29 @@
 
 
 #define QVC_BUFFER_TEXT $4000
-#define PTR1_QVC $f7 ; contains buffer text of qvc
-#define PTR2_QVC $f5 ;contains address of the current video address
-#define PTR3_QVC $f3
+#define PTR1_QVC $f7 ; contains buffer text of qvc 2 bytes
+#define PTR2_QVC $f5 ;contains address of the current video address bytes
+#define PTR3_QVC $f3 ; 2 bytes
 
 #define QVC_LENGTH_COLUMNS 80
 
 // Salut
 
-#define RES $00
-#define RESB $02
+#define RES $00 ; 2 bytes
+#define RESB $02 ; 4 bytes
+
+#define RES2 $c1 ; One byte
+#define RES3 $f9 ; One byte
+
+#define BASICFLG $026a
+
+/*
+30 PAPER0:INK7:POKE618,#23
+60 CLS
+*/
+lda #$23
+sta $268
+jsr $ccce
 start
 .(
 	lda #$02
@@ -24,32 +37,32 @@ _a808
 .(
 	LDA #$B0
 	LDY #$8F
-	STA $04
-	STY $05
+	STA RESB+2
+	STY RESB+3
 	LDA #$FF
-	STA $03
+	STA RESB+1
 _a814
 	LDY #$4F
 _a816
-	LDA ($04),Y
+	LDA (RESB+2),Y
 	CMP #$20
 	BNE _a82e
 	DEY
 	BPL _a816
-	LDA $04
+	LDA RESB+2
 	SEC
 	SBC #$50
-	STA $04
+	STA RESB+2
 	BCS _a82a
-	DEC $05
+	DEC RESB+3
 _a82a
-	DEC $03
+	DEC RESB+1
 	BNE _a814
 _a82e
 	RTS
 
 
-.byt $00
+
 .)
 _a830
 set_via_qvc
@@ -71,7 +84,7 @@ loop7
 	lda $030D
 	rts
 /**/
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 _a860
@@ -81,18 +94,18 @@ _a860
 	ldx #$11
 	jsr _a9c0 
 	dec PTR3_QVC
-	lda $f9
+	lda RES3
 	beq end
-	dec $f9
+	dec RES3
 end	
 	rts
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 _a880
 .(
 	lda PTR3_QVC+1
-.byt $F0,$23 ; FIXME
+	beq end
 	dec PTR3_QVC+1
 	lda PTR1_QVC
 	sec
@@ -102,9 +115,9 @@ _a880
 	bcs next16
 	dec PTR1_QVC+1
 next16
-	lda $c1
+	lda RES2
 	beq next15
-	dec $c1
+	dec RES2
 	lda PTR2_QVC
 	sec
 	sbc #$28
@@ -114,20 +127,21 @@ next16
 next15
 	ldx #$19
 	jsr _a9c0
+end
 	rts
-	.byt $00,$00,$00,$00,$00,$00,$00,$00
+
 .)	
 _a8b0
 .(
 	lda #$00
-	sta $f9
+	sta RES3
 	lda #$00
 	sta PTR3_QVC
 	lda #$30
 	sta $bb91
 	sta $bb90
 	rts
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 _a8d0
@@ -141,7 +155,7 @@ _a8d0
 _a8df
 	JMP _aac0 ; 
 
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 _a8f0
 
@@ -153,7 +167,7 @@ ROUTINE2_QVC
 	sta RES
 	sty RES+1
 	
-	ldx $c1 ; FIXME
+	ldx RES2 
 	beq next2
 loop3	
 	lda RES
@@ -169,7 +183,7 @@ next
 next2
 	lda PTR3_QVC
 	sec
-	sbc $f9 ; fIXME
+	sbc RES3 
 	clc
 	adc RES
 	sta RES
@@ -182,8 +196,9 @@ next3
 	ldy #$bb
 	sta RESB
 	sty RESB+1
-	
+
 	ldx #$1c
+loop20
 	ldy #$00
 loop2
 	lda (RES),y
@@ -206,26 +221,19 @@ next4
 	inc RES+1
 next5
 	dex
-	;bne loop2
-.byt $D0,$DC ; FIXME
+	bne loop20
 	rts
 
-.byt $00,$00,$00,$00,$00,$00,$00,$00
 
-
-
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
 .)
 
 _a960
 status_line_buffer_qvc
 .(
-.byt $2A,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$58,$3A
-.byt $30,$30,$20,$20,$20,$59,$3A,$30,$30,$30,$20,$20,$20,$20,$20,$20
+.byt "*",$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,"X:000",$20,$20,$20,"Y:000",$20,$20,$20,$20,$20,$20
 .byt $20,$20,$20,$20,$20,$20,$20,$20
-// next is a garbage
-.byt $00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 
@@ -234,12 +242,12 @@ display_status_line_qvc
 .(
 	ldx #$27
 loop
-	lda status_line_buffer_qvc,x ; FIXME
+	lda status_line_buffer_qvc,x
 	sta $bb80,x
 	dex 
 	bpl loop
 	rts
-.byt $00,$00,$00,$00
+
 .)
 
 _a9a0
@@ -255,10 +263,8 @@ next15
 	lda #$30
 	sta $bb80,x
 	dex
-.byt $D0,$EA
+	bne _a9a0
 	rts
-
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00
 .)
 
 _a9c0
@@ -274,9 +280,9 @@ next15
 	lda #$39
 	sta $bb80,x
 	dex
-	.byt $d0,$ea ; FIXME
+	bne _a9c0
 	rts
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 _a9e0
@@ -285,36 +291,37 @@ _a9e0
 	cmp #$4f
 	beq next16
 	inc PTR3_QVC
-	lda $f9
+	lda RES3
 	cmp #$27
 	beq next15
-	inc $f9
+	inc RES3
 next15
 	ldx #$11
-	jmp _a9a0  ; FIXME
+	jmp _a9a0  
 next16
 	lda $bb80
 	bpl _aa00
 	rts
-.byt $00,$00,$00,$00,$00
+
 
 +_aa00
 	jsr _a8b0 
 	jmp _aa10 
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 
 +_aa10
 	lda PTR3_QVC+1 ; 
 	cmp #$ff
-.byt $F0,$27 ; FIXME
-	lda PTR1_QVC ; FIXME
+	beq end
+
+	lda PTR1_QVC 
 	clc
 	adc #$50
 	sta PTR1_QVC
 	lda PTR1_QVC+1 
 	adc #$00
 	sta PTR1_QVC+1
-	lda $c1 ; FIXME
+	lda RES2 
 	cmp #$1a
 	beq next23
 
@@ -326,32 +333,31 @@ next16
 
 	inc PTR2_QVC+1 
 next22
-	inc $c1
+	inc RES2
 next23
 	inc PTR3_QVC+1
 	ldx #$19
-	jsr _a9a0 
+	jsr _a9a0
+end
 	rts
-	.byt $00,$00
+
 .)
 
 _aa40
 .(
 	ldy PTR3_QVC
-	.byt $91,$F7 ; FIXME
+	sta ($f7),y ;FIXME
 	jmp _a9e0
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 _aa60
 .(
-	ldy $f9 ; FIXME
-	lda (PTR2_QVC),y ; FIXME
+	ldy RES3 
+	lda (PTR2_QVC),y
 	eor #$80
-	sta (PTR2_QVC),y ; FIXME
+	sta (PTR2_QVC),y 
 	rts
-.byt $00,$00,$00,$00,$00,$00,$00
 .)
 
 _aa70
@@ -372,12 +378,12 @@ start_qvc
 	jsr display_status_line_qvc
 
 #ifdef CPU_65C02
-	stz $f9
-	stz $c1
+	stz RES3
+	stz RES2
 #else
 	lda #$00 
-	sta $f9 ; dunno yet FIXME
-	sta $c1 ; DUNNO yet FIXME
+	sta RES3 ; dunno yet FIXME
+	sta RES2 ; DUNNO yet FIXME
 #endif
 
 	nop
@@ -406,7 +412,7 @@ next15
 	jsr _aa40 
 	jmp _aa95 
 
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 _aac0
@@ -414,7 +420,7 @@ _aac0
 	stz $02df  ; FIXME
 #else
 	lda #$00
-	sta $02df  ; FIXME
+	sta $02df  ; FIXME RESET KEY PRESSED
 #endif
 	jsr _ada0 
 	cmp #$09
@@ -494,7 +500,7 @@ compare_next14
 	bmi next8
 	cmp #$5b
 	bpl next8
-	ldy $0209 ; FIXME
+	ldy $0209 ; FIXME test matrix keyboard
 	cpy #$a7
 	beq next8
 	cpy #$a4
@@ -523,18 +529,19 @@ _ab80
 #ifdef CPU_65C02
 	stz RESB
 	stz $02df ; FIXME
-	stz $04 ; FIXME
+	stz RESB+2 ; FIXME
 #else	
 	lda #$00
 	sta RESB
 	sta $02df ; FIXME
-	sta $04 ; FIXME
+	sta RESB+2
 #endif
 	ldy #$40 ; BUFFER FIXME ?
 	sta RES
 	sty RES+1
-	
+new
 	ldy #0
+loop21
 	lda (RES),y
 	jsr set_via_qvc 
 	iny
@@ -544,13 +551,10 @@ _ab80
 	nop
 next10
 	cpy #$50
-
-.byt $D0,$EE ; FIXME
+	bne loop21
 
 	lda RESB
 	bne next12
-
-
 	lda RES
 	clc
 	adc #$50
@@ -559,12 +563,13 @@ next10
 
 	inc RES+1
 next11
-	lda $04
+	lda RESB+2
 	cmp RESB+1
 	beq next12
 
-	inc $04 ; FIXME
-.byt $D0,$D3 ; FIXME
+	inc RESB+2 
+	bne new
+
 next12
 	lda #$0a
 	jsr set_via_qvc 
@@ -572,7 +577,7 @@ next12
 	jsr set_via_qvc 
 
 	rts
-.byt $00,$00,$00,$00,$00,$00
+
 _abd0
 
 
@@ -596,9 +601,7 @@ store_char_buf
 	dex
 	bne store_char_buf
 	rts
-.byt $00,$00,$00
-_abf0
-.byt $00,$00,$00,$00,$00
+
 .)
 
 _abf5
@@ -608,7 +611,7 @@ _abf5
 	nop
 	nop
 	jmp _aac0 
-.byt $00,$00
+
 .)
 _ac00
 .(
@@ -680,23 +683,21 @@ _ac4f
 
 	inx
 	iny
-	jmp _ac4f ; FIXME
+	jmp _ac4f
 end2
 
 	rts
 
-.byt $00,$00
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 _ac70
 .(
 	jsr _a860 
 	ldy PTR3_QVC
 	lda #$20
-	sta ($f7),y
-;.byt $91,$F7 ; FIXME
+	sta ($f7),y ; FIXME
 	rts
-.byt $00,$00,$00,$00,$00,$00
+
 .)
 
 _ac80
@@ -708,7 +709,6 @@ loop7
 	dey
 	bpl loop7
 	rts
-.byt $00,$00,$00,$00,$00,$00
 .)
 
 
@@ -717,7 +717,8 @@ _ac90
 .(
 	lda PTR3_QVC+1
 	cmp #$ff
-.byt $F0,$3B
+	beq end
+
 	lda #$60
 	ldy #$8f
 	sta RES
@@ -740,7 +741,8 @@ loop9
 	bne next19
 	lda RES+1
 	cmp PTR1_QVC+1
-.byt $F0,$16 ;FIXME
+
+	beq end
 next19
 	lda RES
 	ldy RES+1
@@ -755,10 +757,11 @@ next19
 	dec RES+1
 next18
 	jmp _aca6 
+end
 	jsr _ac80
 	rts
 
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 _ace0
 .(
@@ -768,30 +771,30 @@ _ace0
 	LDA PTR1_QVC
 	LDY PTR1_QVC+1
 	STA RES
-	STY $01
+	STY RES+1
 	CLC
 	ADC #$50
-	STA $02
+	STA RESB
 	TYA
 	ADC #$00
-	STA $03
+	STA RESB+1
 _acf8
 	LDY #$4F
 _acfa
-	LDA ($02),Y
-	STA ($00),Y
+	LDA (RESB),Y
+	STA (RES),Y
 	DEY
 	BPL _acfa
-	LDA $02
-	LDY $03
+	LDA RESB
+	LDY RESB+1
 	STA RES
-	STY $01
-	LDA $02
+	STY RES+1
+	LDA RESB
 	CLC
 	ADC #$50
-	STA $02
+	STA RESB
 	BCC _ad14
-	INC $03
+	INC RESB+1
 _ad14
 	LDA RES
 	CMP #$B0
@@ -802,14 +805,14 @@ _ad14
 	LDY #$4F
 	LDA #$20
 _AD24
-	STA $8FB0,Y
+	STA $8FB0,Y ; FIXME
 	DEY
 	BPL _AD24
 _ad2a
 	RTS
 .)
 
-.byt $00,$00,$00,$00,$00
+
 
 _ad30
 .(
@@ -829,7 +832,7 @@ _ad43
 	LDA #$20
 	STA (PTR1_QVC),Y
 	RTS
-	.byt $00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 
@@ -851,7 +854,7 @@ _ad56
 _ad65
 	RTS
 
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
 _ad70
@@ -860,22 +863,22 @@ _ad70
 	eor #$80
 	sta $bb80
 	rts
-.byt $00,$00,$00,$00,$00
+
 .)
 _ad7e
 .(
-	lda $02df ; fixme
+	lda $02df ; fixme get last key pressed
 	bpl end
 	php
 	and #$7f
 	pha
 	lda #$00
-	sta $02df ; FIXME
+	sta $02df ; FIXME reset key pressed
 	pla
 	plp
 end
 	rts
-	.byt $00
+
 .)
 	
 
@@ -909,6 +912,6 @@ _ada0
 next13
 	and #$7f
 	rts
-.byt $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 .)
 
