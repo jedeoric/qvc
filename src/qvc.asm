@@ -8,6 +8,8 @@
 #define PTR2_QVC $f5 ;contains address of the current video address
 #define PTR3_QVC $f3
 
+#define QVC_LENGTH_COLUMNS 80
+
 // Salut
 
 #define RES $00
@@ -74,11 +76,11 @@ loop7
 
 _a860
 .(
-	lda $f3
+	lda PTR3_QVC
 	beq end
 	ldx #$11
-	jsr _a9c0 ; FIXME
-	dec $f3
+	jsr _a9c0 
+	dec PTR3_QVC
 	lda $f9
 	beq end
 	dec $f9
@@ -89,16 +91,16 @@ end
 
 _a880
 .(
-	lda $f4
+	lda PTR3_QVC+1
 .byt $F0,$23 ; FIXME
-	dec $f4
+	dec PTR3_QVC+1
 	lda PTR1_QVC
 	sec
 	sbc #$50
 	sta PTR1_QVC
 	
 	bcs next16
-	dec $f8
+	dec PTR1_QVC+1
 next16
 	lda $c1
 	beq next15
@@ -108,7 +110,7 @@ next16
 	sbc #$28
 	sta PTR2_QVC
 	bcs next15
-	dec $f6
+	dec PTR2_QVC+1
 next15
 	ldx #$19
 	jsr _a9c0
@@ -120,7 +122,7 @@ _a8b0
 	lda #$00
 	sta $f9
 	lda #$00
-	sta $f3
+	sta PTR3_QVC
 	lda #$30
 	sta $bb91
 	sta $bb90
@@ -279,10 +281,10 @@ next15
 
 _a9e0
 .(
-	lda $f3
+	lda PTR3_QVC
 	cmp #$4f
 	beq next16
-	inc $f3
+	inc PTR3_QVC
 	lda $f9
 	cmp #$27
 	beq next15
@@ -308,21 +310,24 @@ next16
 	lda PTR1_QVC ; FIXME
 	clc
 	adc #$50
-	sta PTR1_QVC; FIXME 
-	lda $f8 ; FIXME
+	sta PTR1_QVC
+	lda PTR1_QVC+1 
 	adc #$00
-	sta $f8
+	sta PTR1_QVC+1
 	lda $c1 ; FIXME
 	cmp #$1a
-.byt $F0,$0D ; FIXME
-	lda PTR2_QVC ; FIXME
+	beq next23
+
+	lda PTR2_QVC 
 	clc
 	adc #$28
 	sta PTR2_QVC
+	bcc next22
 
-.byt $90,$02 ; FIXME
-	inc $f6 ; FIXME
+	inc PTR2_QVC+1 
+next22
 	inc $c1
+next23
 	inc PTR3_QVC+1
 	ldx #$19
 	jsr _a9a0 
@@ -332,7 +337,7 @@ next16
 
 _aa40
 .(
-	ldy $f3
+	ldy PTR3_QVC
 	.byt $91,$F7 ; FIXME
 	jmp _a9e0
 .byt $00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -654,8 +659,8 @@ loop17
 	lda RES
 	bne next16
 	lda RESB
+	beq end2
 
-.byt $F0,$1B ; FIXME
 next16
 	ldy #$4f
 	lda #$20
@@ -686,9 +691,10 @@ end2
 _ac70
 .(
 	jsr _a860 
-	ldy $f3
+	ldy PTR3_QVC
 	lda #$20
-.byt $91,$F7 ; FIXME
+	sta ($f7),y
+;.byt $91,$F7 ; FIXME
 	rts
 .byt $00,$00,$00,$00,$00,$00
 .)
@@ -709,7 +715,7 @@ loop7
 
 _ac90
 .(
-	lda $f4
+	lda PTR3_QVC+1
 	cmp #$ff
 .byt $F0,$3B
 	lda #$60
@@ -733,7 +739,7 @@ loop9
 
 	bne next19
 	lda RES+1
-	cmp $f8
+	cmp PTR1_QVC+1
 .byt $F0,$16 ;FIXME
 next19
 	lda RES
@@ -756,12 +762,12 @@ next18
 .)
 _ace0
 .(
-	LDA $F4
+	LDA PTR3_QVC+1
 	CMP #$FF
 	BEQ _ad2a
 	LDA PTR1_QVC
-	LDY $F8
-	STA $00
+	LDY PTR1_QVC+1
+	STA RES
 	STY $01
 	CLC
 	ADC #$50
@@ -778,7 +784,7 @@ _acfa
 	BPL _acfa
 	LDA $02
 	LDY $03
-	STA $00
+	STA RES
 	STY $01
 	LDA $02
 	CLC
@@ -787,7 +793,7 @@ _acfa
 	BCC _ad14
 	INC $03
 _ad14
-	LDA $00
+	LDA RES
 	CMP #$B0
 	BNE _acf8
 	LDA $01
@@ -807,7 +813,7 @@ _ad2a
 
 _ad30
 .(
-	LDY $F3
+	LDY PTR3_QVC
 	CPY #$4F
 	BEQ _ad43
 	LDY #$4F
@@ -817,7 +823,7 @@ _ad38
 	INY
 	STA (PTR1_QVC),Y
 	DEY
-	CPY $F3
+	CPY PTR3_QVC
 	BNE _ad38
 _ad43
 	LDA #$20
@@ -829,7 +835,7 @@ _ad43
 
 _ad50
 .(
-	LDY $F3
+	LDY PTR3_QVC
 	CPY #$4F
 	BEQ _ad65
 _ad56	
